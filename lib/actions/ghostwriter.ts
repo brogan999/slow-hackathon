@@ -1,10 +1,11 @@
 "use server"
 
 import { auth } from "@/auth"
-import { generateEssay } from "@/lib/ghostwriter/generate"
+import { generateEssay, type PipelineMode } from "@/lib/ghostwriter/generate"
+import { scorePangram, type PangramScore } from "@/lib/ghostwriter/pangram"
 
 export async function generateGhostwriterEssay(
-  _prev: { text?: string; error?: string },
+  _prev: { text?: string; error?: string; score?: PangramScore; mode?: PipelineMode },
   formData: FormData
 ) {
   const session = await auth()
@@ -14,9 +15,19 @@ export async function generateGhostwriterEssay(
   if (!topic?.trim()) return { error: "Topic is required" }
   if (topic.length > 5000) return { error: "Topic is too long (max 5,000 characters)" }
 
+  const mode = (formData.get("mode") as PipelineMode) || "corpus"
+
   try {
-    const { processed } = await generateEssay(topic.trim())
-    return { text: processed }
+    const { processed } = await generateEssay(topic.trim(), mode)
+
+    let score: PangramScore | undefined
+    try {
+      score = await scorePangram(processed)
+    } catch (err) {
+      console.error("Pangram scoring failed:", err)
+    }
+
+    return { text: processed, score, mode }
   } catch (err) {
     console.error("Ghostwriter generation failed:", err)
     const message = err instanceof Error ? err.message : "Generation failed"

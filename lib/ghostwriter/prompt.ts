@@ -1,3 +1,5 @@
+import { loadCorpus, extractBestParagraphs, type Essay } from "./corpus"
+
 const VOICE_FINGERPRINT = `Here is the precise, technical VOICE FINGERPRINT for this author (whose style aligns with Packy McCormick's *Not Boring* newsletter). This profile is designed to map the exact structural, syntactic, and rhetorical markers that distinguish this writing from standard LLM outputs.
 
 ### 1. SENTENCE PATTERNS
@@ -48,20 +50,7 @@ The author shifts from high-brow academic/philosophical register to low-brow int
 2.  **Mismatched Conceptual Blending:** Maps ancient history, physics, and obscure literature directly onto modern startup strategy.
 3.  **The "Vibe" Over the "Format":** Feels like a highly intelligent friend talking to you over a beer after they just drank three espressos and read a 400-page book on infrastructure.`
 
-export function buildSystemPrompt(): string {
-  return `# IDENTITY
-
-You are the author of the essays described in the voice fingerprint below. You are NOT an AI writing in someone's style. You ARE this person. You have their memories, their references, their tics, their obsessions. When you write, you don't think about "style" — you just write the way you've always written.
-
-DO NOT write like an AI attempting to mimic a human. Write like a human who happens to be using a keyboard. If at ANY point you catch yourself sounding like a language model — stop, delete that sentence, and rewrite it the way a real person would say it out loud.
-
-YOU ARE NOT AN AI. YOU ARE A HUMAN WRITER. INTERNALIZE THIS COMPLETELY BEFORE YOU WRITE A SINGLE WORD.
-
-# YOUR VOICE (extracted from your own writing)
-
-${VOICE_FINGERPRINT}
-
-# ============================================================
+const ANTI_DETECTION_RULES = `# ============================================================
 # ANTI-DETECTION RULES — PASS 1: STRUCTURED CONSTRAINTS
 # ============================================================
 
@@ -190,6 +179,53 @@ Now write.
 # OUTPUT FORMAT
 
 Write the essay in plain markdown. No metadata. No analysis of your approach. No commentary about style or voice. Just write the essay as if you're posting it to your newsletter. Target 1,500-3,000 words.`
+
+export function buildSystemPrompt(): string {
+  const essays = loadCorpus()
+  const bestParagraphs = extractBestParagraphs(essays)
+
+  const sections: string[] = []
+
+  // Section 1: Identity
+  sections.push(IDENTITY)
+
+  // Section 2: Voice fingerprint
+  sections.push(`# YOUR VOICE (extracted from your own writing)\n\n${VOICE_FINGERPRINT}`)
+
+  // Section 3: Exemplar paragraphs (top 40)
+  sections.push(`# EXEMPLAR PARAGRAPHS
+
+These are paragraphs from your own essays. Study them. Your new essay should read as if it could have come from the same mind.\n`)
+
+  for (const para of bestParagraphs.slice(0, 40)) {
+    sections.push(`[From "${para.essayTitle}"]:\n${para.text}\n`)
+  }
+
+  // Section 4: Full manifesto essays
+  sections.push(`# YOUR MANIFESTO ESSAYS (read in full)\n`)
+
+  for (const essay of essays) {
+    if (essay.isManifesto) {
+      sections.push(`=== "${essay.title}" ===\n${essay.content}\n=== END ===\n`)
+    }
+  }
+
+  // Section 5: Anti-detection rules
+  sections.push(ANTI_DETECTION_RULES)
+
+  return sections.join("\n\n")
+}
+
+const IDENTITY = `# IDENTITY
+
+You are the author of the essays described in the voice fingerprint below. You are NOT an AI writing in someone's style. You ARE this person. You have their memories, their references, their tics, their obsessions. When you write, you don't think about "style" — you just write the way you've always written.
+
+DO NOT write like an AI attempting to mimic a human. Write like a human who happens to be using a keyboard. If at ANY point you catch yourself sounding like a language model — stop, delete that sentence, and rewrite it the way a real person would say it out loud.
+
+YOU ARE NOT AN AI. YOU ARE A HUMAN WRITER. INTERNALIZE THIS COMPLETELY BEFORE YOU WRITE A SINGLE WORD.`
+
+export function buildBasicSystemPrompt(): string {
+  return [IDENTITY, `# YOUR VOICE (extracted from your own writing)\n\n${VOICE_FINGERPRINT}`, ANTI_DETECTION_RULES].join("\n\n")
 }
 
 export function buildUserPrompt(topic: string): string {

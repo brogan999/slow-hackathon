@@ -8,16 +8,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { generateGhostwriterEssay } from "@/lib/actions/ghostwriter"
 import { useActionState } from "react"
-import { Copy, Check } from "lucide-react"
+import { Copy, Check, ShieldCheck, ShieldAlert } from "lucide-react"
 import { useState } from "react"
+import type { PangramScore } from "@/lib/ghostwriter/pangram"
+import type { PipelineMode } from "@/lib/ghostwriter/generate"
+
+const MODE_LABELS: Record<PipelineMode, { label: string; description: string }> = {
+  basic: {
+    label: "Basic",
+    description: "Gemini + anti-detection prompt (no corpus)",
+  },
+  corpus: {
+    label: "Corpus-grounded",
+    description: "Gemini + exemplar paragraphs + manifesto essays",
+  },
+  opus: {
+    label: "Corpus + Opus rewrite",
+    description: "Corpus-grounded + Claude Opus 4.6 post-processing",
+  },
+}
 
 export default function GhostwriterPage() {
   const [state, action, pending] = useActionState<
-    { text?: string; error?: string },
+    { text?: string; error?: string; score?: PangramScore; mode?: PipelineMode },
     FormData
   >(
     async (_prev, formData) => {
@@ -28,6 +53,7 @@ export default function GhostwriterPage() {
   )
 
   const [copied, setCopied] = useState(false)
+  const [mode, setMode] = useState<PipelineMode>("opus")
 
   async function handleCopy() {
     if (!state.text) return
@@ -60,6 +86,32 @@ export default function GhostwriterPage() {
               />
             </div>
 
+            <div className="flex flex-col gap-2">
+              <Label>Pipeline</Label>
+              <Select
+                value={mode}
+                onValueChange={(v) => setMode(v as PipelineMode)}
+                disabled={pending}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.entries(MODE_LABELS) as [PipelineMode, { label: string; description: string }][]).map(
+                    ([value, { label, description }]) => (
+                      <SelectItem key={value} value={value}>
+                        <span className="font-medium">{label}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          — {description}
+                        </span>
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+              <input type="hidden" name="mode" value={mode} />
+            </div>
+
             {state.error && (
               <p className="text-sm text-destructive">{state.error}</p>
             )}
@@ -75,13 +127,73 @@ export default function GhostwriterPage() {
 
             {pending && (
               <p className="text-sm text-muted-foreground animate-pulse text-center">
-                This may take up to a minute. The AI is writing, then
-                post-processing runs to remove detection patterns.
+                {mode === "opus"
+                  ? "This may take 2-3 minutes. Gemini writes, then Claude Opus rewrites to disrupt stenographic patterns."
+                  : "This may take up to a minute. The AI is writing, then post-processing runs."}
               </p>
             )}
           </form>
         </CardContent>
       </Card>
+
+      {state.score && (
+        <Card className="w-full max-w-3xl">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="flex items-center gap-3">
+              {state.score.passing ? (
+                <ShieldCheck className="h-6 w-6 text-green-500" />
+              ) : (
+                <ShieldAlert className="h-6 w-6 text-red-500" />
+              )}
+              <CardTitle className="text-lg">Pangram AI Detection</CardTitle>
+              {state.mode && (
+                <Badge variant="outline" className="text-xs">
+                  {MODE_LABELS[state.mode].label}
+                </Badge>
+              )}
+            </div>
+            <Badge variant={state.score.passing ? "default" : "destructive"}>
+              {state.score.passing ? "PASS" : "FAIL"}
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Verdict
+                </p>
+                <p className="text-sm font-medium mt-1">
+                  {state.score.headline}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  AI Fraction
+                </p>
+                <p className="text-sm font-medium mt-1">
+                  {(state.score.fractionAi * 100).toFixed(1)}%
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Max Window Score
+                </p>
+                <p className="text-sm font-medium mt-1">
+                  {(state.score.maxScore * 100).toFixed(1)}%
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Flagged Windows
+                </p>
+                <p className="text-sm font-medium mt-1">
+                  {state.score.numFlagged} / {state.score.numTotal}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {state.text && (
         <Card className="w-full max-w-3xl">
