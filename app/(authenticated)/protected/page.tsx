@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
-import { InfoIcon } from "lucide-react"
+import { InfoIcon, PenTool } from "lucide-react"
 import { Suspense } from "react"
+import Link from "next/link"
 
 async function UserDetails() {
   const session = await auth()
@@ -26,6 +27,20 @@ export default function ProtectedPage() {
       <Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
         <UserDetails />
       </Suspense>
+      <div className="w-full">
+        <Link
+          href="/ghostwriter"
+          className="flex items-center gap-3 p-4 rounded-lg border hover:bg-accent transition-colors"
+        >
+          <PenTool size="20" />
+          <div>
+            <p className="font-medium">Ghostwriter</p>
+            <p className="text-sm text-muted-foreground">
+              Generate AI-detection-proof essays
+            </p>
+          </div>
+        </Link>
+      </div>
     </div>
   )
 }
