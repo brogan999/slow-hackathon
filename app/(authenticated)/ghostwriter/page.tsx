@@ -105,15 +105,15 @@ export default function GhostwriterPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+              <div className="flex flex-col gap-2 min-w-0">
                 <Label>Voice</Label>
                 <Select
                   value={voiceId}
                   onValueChange={setVoiceId}
                   disabled={pending}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full truncate">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -134,14 +134,14 @@ export default function GhostwriterPage() {
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 min-w-0">
                 <Label>Pipeline</Label>
                 <Select
                   value={mode}
                   onValueChange={(v) => setMode(v as PipelineMode)}
                   disabled={pending}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full truncate">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -150,12 +150,9 @@ export default function GhostwriterPage() {
                         PipelineMode,
                         { label: string; description: string },
                       ][]
-                    ).map(([value, { label, description }]) => (
+                    ).map(([value, { label }]) => (
                       <SelectItem key={value} value={value}>
-                        <span className="font-medium">{label}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">
-                          — {description}
-                        </span>
+                        {label}
                       </SelectItem>
                     ))}
                   </SelectContent>
