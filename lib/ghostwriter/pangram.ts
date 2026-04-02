@@ -40,7 +40,7 @@ export async function scorePangram(text: string): Promise<PangramScore> {
     fractionAi,
     headline,
     maxScore,
-    passing: maxScore <= 0.1,
+    passing: fractionAi <= 0.25,
     numFlagged: flagged.length,
     numTotal: windows.length,
   }
