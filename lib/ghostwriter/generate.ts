@@ -1,8 +1,9 @@
 import { generateText } from "ai"
 import { google } from "@ai-sdk/google"
 import { anthropic } from "@ai-sdk/anthropic"
-import { buildSystemPrompt, buildBasicSystemPrompt, buildUserPrompt } from "./prompt"
+import { buildSystemPrompt, buildBasicSystemPrompt, buildUserPrompt, type VoiceParams } from "./prompt"
 import { perturbTokens } from "./perturbations"
+import { prisma } from "@/lib/db/prisma"
 
 export type PipelineMode = "basic" | "corpus" | "opus"
 
@@ -70,16 +71,28 @@ async function opusRewrite(text: string): Promise<string> {
   return rewritten
 }
 
+async function loadVoice(voiceId: string): Promise<VoiceParams | undefined> {
+  const voice = await prisma.voice.findUnique({
+    where: { id: voiceId },
+    select: { fingerprint: true, samples: true },
+  })
+  if (!voice) return undefined
+  return { fingerprint: voice.fingerprint, samples: voice.samples }
+}
+
 export async function generateEssay(
   topic: string,
-  mode: PipelineMode = "corpus"
+  mode: PipelineMode = "corpus",
+  voiceId?: string
 ): Promise<{ raw: string; processed: string }> {
+  const voice = voiceId ? await loadVoice(voiceId) : undefined
+
   let raw: string
 
   if (mode === "basic") {
-    raw = await callGemini(buildBasicSystemPrompt(), topic)
+    raw = await callGemini(buildBasicSystemPrompt(voice), topic)
   } else {
-    raw = await callGemini(buildSystemPrompt(), topic)
+    raw = await callGemini(buildSystemPrompt(voice), topic)
   }
 
   let processed = perturbTokens(raw, 0.8)

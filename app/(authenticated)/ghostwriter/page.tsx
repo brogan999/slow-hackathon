@@ -19,9 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { generateGhostwriterEssay } from "@/lib/actions/ghostwriter"
+import { listVoices } from "@/lib/actions/voices"
 import { useActionState } from "react"
 import { Copy, Check, ShieldCheck, ShieldAlert } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import Link from "next/link"
 import type { PangramScore } from "@/lib/ghostwriter/pangram"
 import type { PipelineMode } from "@/lib/ghostwriter/generate"
 
@@ -32,13 +34,15 @@ const MODE_LABELS: Record<PipelineMode, { label: string; description: string }> 
   },
   corpus: {
     label: "Corpus-grounded",
-    description: "Gemini + exemplar paragraphs + manifesto essays",
+    description: "Gemini + exemplar paragraphs + writing samples",
   },
   opus: {
     label: "Corpus + Opus rewrite",
     description: "Corpus-grounded + Claude Opus 4.6 post-processing",
   },
 }
+
+type Voice = { id: string; name: string }
 
 export default function GhostwriterPage() {
   const [state, action, pending] = useActionState<
@@ -54,6 +58,12 @@ export default function GhostwriterPage() {
 
   const [copied, setCopied] = useState(false)
   const [mode, setMode] = useState<PipelineMode>("opus")
+  const [voiceId, setVoiceId] = useState("default")
+  const [voices, setVoices] = useState<Voice[]>([])
+
+  useEffect(() => {
+    listVoices().then((v) => setVoices(v as Voice[]))
+  }, [])
 
   async function handleCopy() {
     if (!state.text) return
@@ -66,11 +76,20 @@ export default function GhostwriterPage() {
     <main className="min-h-screen flex flex-col items-center p-4 pt-12 gap-6">
       <Card className="w-full max-w-3xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Ghostwriter</CardTitle>
-          <CardDescription>
-            Enter a topic and get an AI-detection-proof essay in the author's
-            voice.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">Ghostwriter</CardTitle>
+              <CardDescription>
+                Enter a topic and get an AI-detection-proof essay in the
+                selected voice.
+              </CardDescription>
+            </div>
+            <Link href="/voices">
+              <Button variant="outline" size="sm">
+                Manage Voices
+              </Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
           <form action={action} className="flex flex-col gap-4">
@@ -86,30 +105,63 @@ export default function GhostwriterPage() {
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label>Pipeline</Label>
-              <Select
-                value={mode}
-                onValueChange={(v) => setMode(v as PipelineMode)}
-                disabled={pending}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.entries(MODE_LABELS) as [PipelineMode, { label: string; description: string }][]).map(
-                    ([value, { label, description }]) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label>Voice</Label>
+                <Select
+                  value={voiceId}
+                  onValueChange={setVoiceId}
+                  disabled={pending}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">
+                      Packy McCormick (built-in)
+                    </SelectItem>
+                    {voices.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input
+                  type="hidden"
+                  name="voiceId"
+                  value={voiceId === "default" ? "" : voiceId}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label>Pipeline</Label>
+                <Select
+                  value={mode}
+                  onValueChange={(v) => setMode(v as PipelineMode)}
+                  disabled={pending}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(
+                      Object.entries(MODE_LABELS) as [
+                        PipelineMode,
+                        { label: string; description: string },
+                      ][]
+                    ).map(([value, { label, description }]) => (
                       <SelectItem key={value} value={value}>
                         <span className="font-medium">{label}</span>
                         <span className="text-muted-foreground ml-2 text-xs">
                           — {description}
                         </span>
                       </SelectItem>
-                    )
-                  )}
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="mode" value={mode} />
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="mode" value={mode} />
+              </div>
             </div>
 
             {state.error && (

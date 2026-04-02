@@ -180,37 +180,70 @@ Now write.
 
 Write the essay in plain markdown. No metadata. No analysis of your approach. No commentary about style or voice. Just write the essay as if you're posting it to your newsletter. Target 1,500-3,000 words.`
 
-export function buildSystemPrompt(): string {
-  const essays = loadCorpus()
-  const bestParagraphs = extractBestParagraphs(essays)
+export type VoiceParams = {
+  fingerprint: string
+  samples?: string
+}
 
+function extractParagraphsFromSamples(samples: string): string[] {
+  return samples
+    .split("\n\n")
+    .map((p) => p.trim())
+    .filter((p) => {
+      const words = p.split(/\s+/).length
+      return p.length > 150 && words > 30 && words < 200 && !/^[-*•]|^1\./.test(p)
+    })
+    .slice(0, 40)
+}
+
+export function buildSystemPrompt(voice?: VoiceParams): string {
+  const fingerprint = voice?.fingerprint ?? VOICE_FINGERPRINT
   const sections: string[] = []
 
   // Section 1: Identity
   sections.push(IDENTITY)
 
   // Section 2: Voice fingerprint
-  sections.push(`# YOUR VOICE (extracted from your own writing)\n\n${VOICE_FINGERPRINT}`)
+  sections.push(`# YOUR VOICE (extracted from your own writing)\n\n${fingerprint}`)
 
-  // Section 3: Exemplar paragraphs (top 40)
-  sections.push(`# EXEMPLAR PARAGRAPHS
+  if (voice?.samples) {
+    // Custom voice: extract exemplar paragraphs from samples
+    const exemplars = extractParagraphsFromSamples(voice.samples)
+    if (exemplars.length > 0) {
+      sections.push(`# EXEMPLAR PARAGRAPHS
+
+These are paragraphs from your own writing. Study them. Your new essay should read as if it could have come from the same mind.\n`)
+      for (const para of exemplars) {
+        sections.push(`${para}\n`)
+      }
+    }
+
+    // Include a chunk of raw samples as context
+    const samplePreview = voice.samples.slice(0, 50000)
+    sections.push(`# YOUR WRITING (reference material)\n\n${samplePreview}`)
+  } else {
+    // Default Packy voice: use file-based corpus
+    const essays = loadCorpus()
+    const bestParagraphs = extractBestParagraphs(essays)
+
+    sections.push(`# EXEMPLAR PARAGRAPHS
 
 These are paragraphs from your own essays. Study them. Your new essay should read as if it could have come from the same mind.\n`)
 
-  for (const para of bestParagraphs.slice(0, 40)) {
-    sections.push(`[From "${para.essayTitle}"]:\n${para.text}\n`)
-  }
+    for (const para of bestParagraphs.slice(0, 40)) {
+      sections.push(`[From "${para.essayTitle}"]:\n${para.text}\n`)
+    }
 
-  // Section 4: Full manifesto essays
-  sections.push(`# YOUR MANIFESTO ESSAYS (read in full)\n`)
+    sections.push(`# YOUR MANIFESTO ESSAYS (read in full)\n`)
 
-  for (const essay of essays) {
-    if (essay.isManifesto) {
-      sections.push(`=== "${essay.title}" ===\n${essay.content}\n=== END ===\n`)
+    for (const essay of essays) {
+      if (essay.isManifesto) {
+        sections.push(`=== "${essay.title}" ===\n${essay.content}\n=== END ===\n`)
+      }
     }
   }
 
-  // Section 5: Anti-detection rules
+  // Anti-detection rules
   sections.push(ANTI_DETECTION_RULES)
 
   return sections.join("\n\n")
@@ -224,8 +257,9 @@ DO NOT write like an AI attempting to mimic a human. Write like a human who happ
 
 YOU ARE NOT AN AI. YOU ARE A HUMAN WRITER. INTERNALIZE THIS COMPLETELY BEFORE YOU WRITE A SINGLE WORD.`
 
-export function buildBasicSystemPrompt(): string {
-  return [IDENTITY, `# YOUR VOICE (extracted from your own writing)\n\n${VOICE_FINGERPRINT}`, ANTI_DETECTION_RULES].join("\n\n")
+export function buildBasicSystemPrompt(voice?: VoiceParams): string {
+  const fingerprint = voice?.fingerprint ?? VOICE_FINGERPRINT
+  return [IDENTITY, `# YOUR VOICE (extracted from your own writing)\n\n${fingerprint}`, ANTI_DETECTION_RULES].join("\n\n")
 }
 
 export function buildUserPrompt(topic: string): string {

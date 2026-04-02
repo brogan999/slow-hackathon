@@ -16,9 +16,10 @@ export async function generateGhostwriterEssay(
   if (topic.length > 5000) return { error: "Topic is too long (max 5,000 characters)" }
 
   const mode = (formData.get("mode") as PipelineMode) || "corpus"
+  const voiceId = (formData.get("voiceId") as string) || undefined
 
   try {
-    const { processed } = await generateEssay(topic.trim(), mode)
+    const { processed } = await generateEssay(topic.trim(), mode, voiceId)
 
     let score: PangramScore | undefined
     try {
