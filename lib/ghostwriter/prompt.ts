@@ -237,26 +237,23 @@ export function buildSystemPrompt(voice?: VoiceParams): string {
   sections.push(`# YOUR VOICE (extracted from your own writing)\n\n${fingerprint}`)
 
   if (voice?.samples) {
-    // Custom voice: score and select best paragraphs (same algorithm as Packy)
+    // Custom voice: embed raw writing samples directly (most effective for style transfer)
+    // Cap at 100K chars (~25K words) to leave room for instructions
+    const rawSamples = voice.samples.slice(0, 100000)
+    sections.push(`# YOUR WRITING
+
+Read these samples carefully. This is how you write. Absorb the rhythm, vocabulary, sentence structure, and tone. Your new essay must be indistinguishable from these samples.
+
+${rawSamples}`)
+
+    // Also include scored exemplar paragraphs for emphasis
     const scoredParas = scoreParagraphsFromSamples(voice.samples)
     if (scoredParas.length > 0) {
-      sections.push(`# EXEMPLAR PARAGRAPHS
+      sections.push(`# KEY PARAGRAPHS TO STUDY
 
-These are paragraphs from your own writing. Study them. Your new essay should read as if it could have come from the same mind.\n`)
-      for (const para of scoredParas.slice(0, 40)) {
-        sections.push(`[From "${para.title}"]:\n${para.text}\n`)
-      }
-    }
-
-    // Embed best full essays (top 5 by word count, like Packy's manifestos)
-    const essays = splitSamplesIntoEssays(voice.samples)
-      .sort((a, b) => b.wordCount - a.wordCount)
-      .slice(0, 5)
-
-    if (essays.length > 0) {
-      sections.push(`# YOUR BEST ESSAYS (read in full)\n`)
-      for (const essay of essays) {
-        sections.push(`=== "${essay.title}" ===\n${essay.content}\n=== END ===\n`)
+These are your most distinctive paragraphs. Pay special attention to the rhythm and word choice.\n`)
+      for (const para of scoredParas.slice(0, 20)) {
+        sections.push(`${para.text}\n`)
       }
     }
   } else {
