@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createVoice, listVoices, deleteVoice } from "@/lib/actions/voices"
 import { useActionState } from "react"
 import { useEffect, useState } from "react"
-import { Trash2, Plus, Mic, FileText, Globe, Type } from "lucide-react"
+import { Trash2, Plus, Mic, FileText, Globe, Type, BookOpen } from "lucide-react"
 import Link from "next/link"
 
 type Voice = {
@@ -127,7 +127,7 @@ export default function VoicesPage() {
                 onValueChange={setSource}
                 className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="text" className="gap-2">
                     <Type className="h-4 w-4" />
                     Text
@@ -135,6 +135,10 @@ export default function VoicesPage() {
                   <TabsTrigger value="url" className="gap-2">
                     <Globe className="h-4 w-4" />
                     URL
+                  </TabsTrigger>
+                  <TabsTrigger value="substack" className="gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Substack
                   </TabsTrigger>
                   <TabsTrigger value="pdf" className="gap-2">
                     <FileText className="h-4 w-4" />
@@ -176,6 +180,22 @@ export default function VoicesPage() {
                   </div>
                 </TabsContent>
 
+                <TabsContent value="substack" className="mt-4">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="substackUrl">Substack URL</Label>
+                    <Input
+                      id="substackUrl"
+                      name="substackUrl"
+                      placeholder="https://newsletter.example.com or example.substack.com"
+                      disabled={pending}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter any Substack URL. We'll automatically discover and
+                      scrape up to 50 posts from their archive.
+                    </p>
+                  </div>
+                </TabsContent>
+
                 <TabsContent value="pdf" className="mt-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="pdf">Upload PDF</Label>
@@ -204,12 +224,13 @@ export default function VoicesPage() {
 
               {pending && (
                 <p className="text-sm text-muted-foreground animate-pulse text-center">
-                  {source === "url"
-                    ? "Scraping URLs and extracting voice fingerprint..."
-                    : source === "pdf"
-                      ? "Extracting text from PDF and analyzing voice..."
-                      : "Gemini is analyzing the writing samples..."}
-                  {" "}This takes 30-60 seconds.
+                  {source === "substack"
+                    ? "Scraping Substack archive (up to 50 posts) and extracting voice fingerprint. This may take 2-3 minutes."
+                    : source === "url"
+                      ? "Scraping URLs and extracting voice fingerprint... This takes 30-60 seconds."
+                      : source === "pdf"
+                        ? "Extracting text from PDF and analyzing voice... This takes 30-60 seconds."
+                        : "Gemini is analyzing the writing samples... This takes 30-60 seconds."}
                 </p>
               )}
             </form>

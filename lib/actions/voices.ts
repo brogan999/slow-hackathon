@@ -3,7 +3,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db/prisma"
 import { extractFingerprint } from "@/lib/ghostwriter/fingerprint"
-import { extractFromUrls, extractFromPdf } from "@/lib/ghostwriter/extract"
+import { extractFromUrls, extractFromPdf, extractFromSubstack } from "@/lib/ghostwriter/extract"
 import { revalidatePath } from "next/cache"
 
 async function getSamplesFromForm(
@@ -17,6 +17,12 @@ async function getSamplesFromForm(
     const urls = urlsRaw.split("\n").filter((u) => u.trim())
     if (urls.length === 0) throw new Error("Please enter at least one URL")
     return extractFromUrls(urls)
+  }
+
+  if (source === "substack") {
+    const substackUrl = formData.get("substackUrl") as string
+    if (!substackUrl?.trim()) throw new Error("Please enter a Substack URL")
+    return extractFromSubstack(substackUrl.trim())
   }
 
   if (source === "pdf") {
