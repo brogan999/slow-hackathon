@@ -11,18 +11,35 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { createVoice, listVoices, deleteVoice } from "@/lib/actions/voices"
+import { createVoice, listVoices, deleteVoice, getQuality } from "@/lib/actions/voices"
 import { useActionState } from "react"
 import { useEffect, useState } from "react"
-import { Trash2, Plus, Mic, FileText, Globe, Type, BookOpen } from "lucide-react"
+import { Trash2, Plus, Mic, FileText, Globe, Type, BookOpen, ChevronRight } from "lucide-react"
 import Link from "next/link"
 
 type Voice = {
   id: string
   name: string
   createdAt: Date
-  samples: string
+  wordCount: number
+  sampleCount: number
+  sourceType: string
+}
+
+const QUALITY_COLORS: Record<string, string> = {
+  excellent: "bg-green-100 text-green-800 border-green-200",
+  good: "bg-blue-100 text-blue-800 border-blue-200",
+  fair: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  poor: "bg-red-100 text-red-800 border-red-200",
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  text: "Text",
+  url: "URL",
+  substack: "Substack",
+  pdf: "PDF",
 }
 
 function DeleteButton({ voiceId }: { voiceId: string }) {
@@ -35,7 +52,10 @@ function DeleteButton({ voiceId }: { voiceId: string }) {
   )
 
   return (
-    <form action={action}>
+    <form
+      action={action}
+      onClick={(e) => e.stopPropagation()}
+    >
       <input type="hidden" name="voiceId" value={voiceId} />
       <Button
         type="submit"
@@ -56,7 +76,7 @@ export default function VoicesPage() {
   const [source, setSource] = useState("text")
 
   const [state, action, pending] = useActionState<
-    { error?: string; success?: boolean },
+    { error?: string; success?: boolean; warning?: string },
     FormData
   >(
     async (_prev, formData) => {
@@ -157,8 +177,7 @@ export default function VoicesPage() {
                       disabled={pending}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Minimum 500 characters. Paste multiple essays or blog
-                      posts for best results.
+                      Minimum 500 words. Paste multiple essays or blog posts for best results.
                     </p>
                   </div>
                 </TabsContent>
@@ -174,8 +193,7 @@ export default function VoicesPage() {
                       disabled={pending}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Enter blog post or article URLs. We'll scrape the text
-                      content automatically. More URLs = better voice.
+                      Enter blog post or article URLs. More URLs = better voice.
                     </p>
                   </div>
                 </TabsContent>
@@ -190,8 +208,7 @@ export default function VoicesPage() {
                       disabled={pending}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Enter any Substack URL. We'll automatically discover and
-                      scrape up to 50 posts from their archive.
+                      We'll scrape up to 50 posts from the archive automatically.
                     </p>
                   </div>
                 </TabsContent>
@@ -207,8 +224,7 @@ export default function VoicesPage() {
                       disabled={pending}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Upload a PDF containing writing samples. Text will be
-                      extracted automatically.
+                      Upload a PDF containing writing samples.
                     </p>
                   </div>
                 </TabsContent>
@@ -216,6 +232,9 @@ export default function VoicesPage() {
 
               {state.error && (
                 <p className="text-sm text-destructive">{state.error}</p>
+              )}
+              {state.warning && !state.error && (
+                <p className="text-sm text-yellow-600">{state.warning}</p>
               )}
 
               <Button type="submit" disabled={pending}>
@@ -225,12 +244,12 @@ export default function VoicesPage() {
               {pending && (
                 <p className="text-sm text-muted-foreground animate-pulse text-center">
                   {source === "substack"
-                    ? "Scraping Substack archive (up to 50 posts) and extracting voice fingerprint. This may take 2-3 minutes."
+                    ? "Scraping Substack archive and extracting voice fingerprint. This may take 2-3 minutes."
                     : source === "url"
-                      ? "Scraping URLs and extracting voice fingerprint... This takes 30-60 seconds."
+                      ? "Scraping URLs and extracting voice fingerprint..."
                       : source === "pdf"
-                        ? "Extracting text from PDF and analyzing voice... This takes 30-60 seconds."
-                        : "Gemini is analyzing the writing samples... This takes 30-60 seconds."}
+                        ? "Extracting text from PDF and analyzing voice..."
+                        : "Analyzing writing samples..."}
                 </p>
               )}
             </form>
@@ -241,30 +260,44 @@ export default function VoicesPage() {
           {voices.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Mic className="h-8 w-8 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">
-                No voices yet. Create one to get started.
-              </p>
+              <p className="text-sm">No voices yet. Create one to get started.</p>
               <p className="text-xs mt-1">
-                The built-in Packy McCormick voice is always available on the
-                ghostwriter page.
+                The built-in Packy McCormick voice is always available on the ghostwriter page.
               </p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {voices.map((voice) => (
-                <div
-                  key={voice.id}
-                  className="flex items-center justify-between p-3 rounded-lg border"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">{voice.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1 truncate">
-                      {voice.samples.slice(0, 120)}...
-                    </p>
-                  </div>
-                  <DeleteButton voiceId={voice.id} />
-                </div>
-              ))}
+              {voices.map((voice) => {
+                const quality = getQuality(voice.wordCount, voice.sampleCount)
+                return (
+                  <Link key={voice.id} href={`/voices/${voice.id}`}>
+                    <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer">
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{voice.name}</p>
+                            <Badge
+                              variant="outline"
+                              className={`text-xs capitalize ${QUALITY_COLORS[quality]}`}
+                            >
+                              {quality}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                            <span>{voice.wordCount.toLocaleString()} words</span>
+                            <span>{voice.sampleCount} {voice.sampleCount === 1 ? "sample" : "samples"}</span>
+                            <span>{SOURCE_LABELS[voice.sourceType] || voice.sourceType}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DeleteButton voiceId={voice.id} />
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </CardContent>

@@ -77,6 +77,9 @@ model Voice {
   name        String
   samples     String
   fingerprint String
+  wordCount   Int      @default(0)
+  sampleCount Int      @default(0)
+  sourceType  String   @default("text")
   userId      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
