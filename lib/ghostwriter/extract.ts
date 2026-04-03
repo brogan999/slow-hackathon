@@ -34,9 +34,10 @@ export async function extractFromUrls(urls: string[]): Promise<string> {
 }
 
 export async function extractFromSubstack(substackUrl: string): Promise<string> {
-  // Normalize URL
+  // Normalize URL — strip common trailing paths users might paste
   let baseUrl = substackUrl.trim().replace(/\/+$/, "")
   if (!baseUrl.startsWith("http")) baseUrl = `https://${baseUrl}`
+  baseUrl = baseUrl.replace(/\/(archive|about|subscribe|p\/.*|podcast|recommendations)$/i, "")
 
   // Fetch sitemap to discover all post URLs
   const sitemapUrl = `${baseUrl}/sitemap.xml`
