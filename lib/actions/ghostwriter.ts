@@ -13,6 +13,7 @@ export async function generateGhostwriterEssay(
 
   const topic = formData.get("topic") as string
   if (!topic?.trim()) return { error: "Topic is required" }
+  if (topic.trim().length < 200) return { error: "Topic brief must be at least 200 characters. More detail = better Pangram scores." }
   if (topic.length > 5000) return { error: "Topic is too long (max 5,000 characters)" }
 
   const mode = (formData.get("mode") as PipelineMode) || "corpus"

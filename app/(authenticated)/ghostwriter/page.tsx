@@ -60,6 +60,11 @@ export default function GhostwriterPage() {
   const [mode, setMode] = useState<PipelineMode>("opus")
   const [voiceId, setVoiceId] = useState("default")
   const [voices, setVoices] = useState<Voice[]>([])
+  const [topic, setTopic] = useState("")
+
+  const MIN_TOPIC_LENGTH = 200
+  const topicLength = topic.length
+  const topicReady = topicLength >= MIN_TOPIC_LENGTH
 
   useEffect(() => {
     listVoices().then((v) => setVoices(v as Voice[]))
@@ -94,15 +99,25 @@ export default function GhostwriterPage() {
         <CardContent>
           <form action={action} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="topic">Topic</Label>
+              <Label htmlFor="topic">Topic Brief</Label>
               <Textarea
                 id="topic"
                 name="topic"
-                placeholder="What should I write about? Be specific — include angles, threads to follow, and your take..."
-                rows={5}
+                placeholder={"Give detailed instructions for the essay. The more specific you are, the more human the output will score.\n\nInclude:\n• The core argument or thesis\n• Specific angles or threads to explore\n• People, companies, or events to reference\n• Your contrarian take or opinion\n• Historical parallels or analogies to draw\n• What to ignore or skip"}
+                rows={8}
                 required
                 disabled={pending}
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
               />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Detailed briefs produce dramatically better Pangram scores. Be specific — name people, cite numbers, state your opinion.
+                </p>
+                <p className={`text-xs font-mono ${topicReady ? "text-green-600" : "text-muted-foreground"}`}>
+                  {topicLength}/{MIN_TOPIC_LENGTH}
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
@@ -169,9 +184,13 @@ export default function GhostwriterPage() {
               type="submit"
               className="w-full"
               size="lg"
-              disabled={pending}
+              disabled={pending || !topicReady}
             >
-              {pending ? "Generating..." : "Generate Essay"}
+              {pending
+                ? "Generating..."
+                : !topicReady
+                  ? `Need ${MIN_TOPIC_LENGTH - topicLength} more characters`
+                  : "Generate Essay"}
             </Button>
 
             {pending && (
