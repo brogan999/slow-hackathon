@@ -3,6 +3,7 @@ import { google } from "@ai-sdk/google"
 import { anthropic } from "@ai-sdk/anthropic"
 import { buildSystemPrompt, buildBasicSystemPrompt, buildUserPrompt, type VoiceParams } from "./prompt"
 import { perturbTokens } from "./perturbations"
+import { addSourcesToEssay } from "./sources"
 import { prisma } from "@/lib/db/prisma"
 
 export type PipelineMode = "basic" | "corpus" | "opus"
@@ -83,7 +84,8 @@ async function loadVoice(voiceId: string): Promise<VoiceParams | undefined> {
 export async function generateEssay(
   topic: string,
   mode: PipelineMode = "corpus",
-  voiceId?: string
+  voiceId?: string,
+  addSources = true
 ): Promise<{ raw: string; processed: string }> {
   const voice = voiceId ? await loadVoice(voiceId) : undefined
 
@@ -99,6 +101,14 @@ export async function generateEssay(
 
   if (mode === "opus") {
     processed = await opusRewrite(processed)
+  }
+
+  if (addSources) {
+    try {
+      processed = await addSourcesToEssay(processed)
+    } catch (err) {
+      console.error("Source addition failed (continuing without):", err)
+    }
   }
 
   return { raw, processed }

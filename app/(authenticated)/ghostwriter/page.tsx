@@ -176,6 +176,20 @@ export default function GhostwriterPage() {
               </div>
             </div>
 
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="addSources"
+                name="addSources"
+                defaultChecked
+                disabled={pending}
+                className="h-4 w-4 rounded border-input"
+              />
+              <Label htmlFor="addSources" className="text-sm font-normal">
+                Add real sources (footnotes via Exa AI search)
+              </Label>
+            </div>
+
             {state.error && (
               <p className="text-sm text-destructive">{state.error}</p>
             )}

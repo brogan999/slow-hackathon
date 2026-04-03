@@ -18,9 +18,10 @@ export async function generateGhostwriterEssay(
 
   const mode = (formData.get("mode") as PipelineMode) || "corpus"
   const voiceId = (formData.get("voiceId") as string) || undefined
+  const addSources = formData.get("addSources") === "on"
 
   try {
-    const { processed } = await generateEssay(topic.trim(), mode, voiceId)
+    const { processed } = await generateEssay(topic.trim(), mode, voiceId, addSources)
 
     let score: PangramScore | undefined
     try {
