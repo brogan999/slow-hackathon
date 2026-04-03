@@ -1,5 +1,6 @@
 import { generateText } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
+import { google } from "@ai-sdk/google"
 import Exa from "exa-js"
 
 export type Source = {
@@ -12,7 +13,7 @@ export type Source = {
 
 export async function extractClaims(essay: string): Promise<string[]> {
   const { text } = await generateText({
-    model: anthropic("claude-sonnet-4-20250514"),
+    model: google("gemini-3.1-pro-preview"),
     system: `You identify factual claims in essays that need sources. For each claim, output a short search query that would find the best source for it. Output ONLY a JSON array of strings — no commentary, no markdown fences, just the array.
 
 Focus on:
@@ -88,7 +89,7 @@ export async function insertFootnotes(
     .join("\n")
 
   const { text } = await generateText({
-    model: anthropic("claude-sonnet-4-20250514"),
+    model: google("gemini-3.1-pro-preview"),
     system: `You insert footnote markers into an essay. You receive an essay and a list of sources with their claims.
 
 For each source, find the sentence in the essay that makes that claim and add a footnote marker [^N] at the end of the sentence.
