@@ -237,24 +237,32 @@ export function buildSystemPrompt(voice?: VoiceParams): string {
   sections.push(`# YOUR VOICE (extracted from your own writing)\n\n${fingerprint}`)
 
   if (voice?.samples) {
-    // Custom voice: embed raw writing samples directly (most effective for style transfer)
-    // Cap at 100K chars (~25K words) to leave room for instructions
-    const rawSamples = voice.samples.slice(0, 100000)
-    sections.push(`# YOUR WRITING
-
-Read these samples carefully. This is how you write. Absorb the rhythm, vocabulary, sentence structure, and tone. Your new essay must be indistinguishable from these samples.
-
-${rawSamples}`)
-
-    // Also include scored exemplar paragraphs for emphasis
+    // Custom voice: exact same structure as Packy pipeline
     const scoredParas = scoreParagraphsFromSamples(voice.samples)
-    if (scoredParas.length > 0) {
-      sections.push(`# KEY PARAGRAPHS TO STUDY
 
-These are your most distinctive paragraphs. Pay special attention to the rhythm and word choice.\n`)
-      for (const para of scoredParas.slice(0, 20)) {
-        sections.push(`${para.text}\n`)
-      }
+    // Section 3: 40 scored exemplar paragraphs with attribution (same as Packy)
+    sections.push(`# EXEMPLAR PARAGRAPHS
+
+These are paragraphs from your own essays. Study them. Your new essay should read as if it could have come from the same mind.\n`)
+
+    for (const para of scoredParas.slice(0, 40)) {
+      sections.push(`[From "${para.title}"]:\n${para.text}\n`)
+    }
+
+    // Section 4: Top 5 essays embedded in full (same as Packy's manifestos)
+    const essays = splitSamplesIntoEssays(voice.samples)
+      .sort((a, b) => b.wordCount - a.wordCount)
+
+    // Cap each essay at 5000 words to control total prompt size
+    const topEssays = essays.slice(0, 5)
+
+    sections.push(`# YOUR MANIFESTO ESSAYS (read in full)\n`)
+
+    for (const essay of topEssays) {
+      const capped = essay.content.split(/\s+/).length > 5000
+        ? essay.content.split(/\s+/).slice(0, 5000).join(" ")
+        : essay.content
+      sections.push(`=== "${essay.title}" ===\n${capped}\n=== END ===\n`)
     }
   } else {
     // Default Packy voice: use file-based corpus
