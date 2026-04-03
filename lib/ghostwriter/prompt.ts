@@ -178,7 +178,9 @@ Now write.
 
 # OUTPUT FORMAT
 
-Write the essay in plain markdown. No metadata. No analysis of your approach. No commentary about style or voice. Just write the essay as if you're posting it to your newsletter. Target 1,500-3,000 words.`
+Write the essay in plain markdown. No metadata. No analysis of your approach. No commentary about style or voice. Just write the essay as if you're posting it to your newsletter.
+
+IMPORTANT: The essay MUST be at least 2,500 words. Aim for 3,000-4,000 words. Do NOT stop early. If you feel like wrapping up, you are only halfway done — keep going. Explore another angle, add another section, go deeper on a tangent. Short essays fail the quality check.`
 
 export type VoiceParams = {
   fingerprint: string
@@ -307,6 +309,8 @@ export function buildBasicSystemPrompt(voice?: VoiceParams): string {
 
 export function buildUserPrompt(topic: string): string {
   return `Write an essay on the following topic. Remember: you are the author, not an AI. Write in your natural voice. Do NOT use any banned words or patterns. Your essay will be scored by an AI detector — it must pass as human-written.
+
+The essay MUST be at least 2,500 words. Aim for 3,000-4,000 words. Go deep. Follow tangents. Add sections. Do NOT wrap up early.
 
 TOPIC:
 ${topic}`
