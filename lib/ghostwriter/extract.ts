@@ -1,13 +1,30 @@
 import { extract } from "@extractus/article-extractor"
 import { PDFParse } from "pdf-parse"
 
+function htmlToText(html: string): string {
+  let text = html
+  // Convert block elements to double newlines
+  text = text.replace(/<\/(p|div|article|section|blockquote|h[1-6]|li|tr)>/gi, "\n\n")
+  text = text.replace(/<br\s*\/?>/gi, "\n")
+  // Strip remaining HTML tags
+  text = text.replace(/<[^>]*>/g, "")
+  // Decode common HTML entities
+  text = text.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  text = text.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+  text = text.replace(/&#x27;/g, "'").replace(/&#x2F;/g, "/")
+  // Clean up whitespace: collapse multiple newlines to double, trim lines
+  text = text.replace(/[ \t]+/g, " ")
+  text = text.replace(/\n /g, "\n")
+  text = text.replace(/\n{3,}/g, "\n\n")
+  return text.trim()
+}
+
 export async function extractFromUrl(url: string): Promise<string> {
   const article = await extract(url)
   if (!article?.content) {
     throw new Error(`Could not extract article content from ${url}`)
   }
-  // Strip HTML tags from the content
-  return article.content.replace(/<[^>]*>/g, "").trim()
+  return htmlToText(article.content)
 }
 
 export async function extractFromUrls(urls: string[]): Promise<string> {
