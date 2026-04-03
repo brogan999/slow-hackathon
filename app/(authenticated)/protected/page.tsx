@@ -1,5 +1,5 @@
 import { auth } from "@/auth"
-import { InfoIcon, PenTool, Mic } from "lucide-react"
+import { InfoIcon, PenTool, Mic, Users } from "lucide-react"
 import { Suspense } from "react"
 import Link from "next/link"
 
@@ -49,6 +49,18 @@ export default function ProtectedPage() {
             <p className="font-medium">Voices</p>
             <p className="text-sm text-muted-foreground">
               Create and manage voice profiles
+            </p>
+          </div>
+        </Link>
+        <Link
+          href="/audience"
+          className="flex items-center gap-3 p-4 rounded-lg border hover:bg-accent transition-colors mt-3"
+        >
+          <Users size="20" />
+          <div>
+            <p className="font-medium">Audience</p>
+            <p className="text-sm text-muted-foreground">
+              Import subscribers and identify work emails
             </p>
           </div>
         </Link>
