@@ -185,15 +185,45 @@ export type VoiceParams = {
   samples?: string
 }
 
-function extractParagraphsFromSamples(samples: string): string[] {
-  return samples
-    .split("\n\n")
-    .map((p) => p.trim())
-    .filter((p) => {
+type SampleEssay = { title: string; content: string; wordCount: number }
+
+function splitSamplesIntoEssays(samples: string): SampleEssay[] {
+  const pieces = samples.split(/\n---\n/).filter((p) => p.trim().length > 200)
+  return pieces.map((content, i) => {
+    const trimmed = content.trim()
+    const firstLine = trimmed.split("\n")[0].replace(/^#+\s*/, "").slice(0, 80)
+    return {
+      title: firstLine || `Sample ${i + 1}`,
+      content: trimmed,
+      wordCount: trimmed.split(/\s+/).length,
+    }
+  })
+}
+
+function scoreParagraphsFromSamples(samples: string): { score: number; text: string; title: string }[] {
+  const essays = splitSamplesIntoEssays(samples)
+  const candidates: { score: number; text: string; title: string }[] = []
+
+  for (const essay of essays) {
+    const paras = essay.content.split("\n\n").map((p) => p.trim()).filter((p) => p.length > 150)
+
+    for (const p of paras) {
       const words = p.split(/\s+/).length
-      return p.length > 150 && words > 30 && words < 200 && !/^[-*•]|^1\./.test(p)
-    })
-    .slice(0, 40)
+      if (words <= 30 || words >= 200) continue
+
+      const hasProper = /[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+/.test(p)
+      const sentences = p.split(/[.!?]+/).filter((s) => s.trim())
+      const lengths = sentences.map((s) => s.trim().split(/\s+/).length)
+      const lengthVariance = lengths.length > 1 ? Math.max(...lengths) - Math.min(...lengths) : 0
+      const isList = /^[-*•]|^1\./.test(p.trim())
+
+      const score = (hasProper ? 10 : 0) + lengthVariance + (isList ? 0 : 5)
+      candidates.push({ score, text: p, title: essay.title })
+    }
+  }
+
+  candidates.sort((a, b) => b.score - a.score)
+  return candidates.slice(0, 60)
 }
 
 export function buildSystemPrompt(voice?: VoiceParams): string {
@@ -207,20 +237,28 @@ export function buildSystemPrompt(voice?: VoiceParams): string {
   sections.push(`# YOUR VOICE (extracted from your own writing)\n\n${fingerprint}`)
 
   if (voice?.samples) {
-    // Custom voice: extract exemplar paragraphs from samples
-    const exemplars = extractParagraphsFromSamples(voice.samples)
-    if (exemplars.length > 0) {
+    // Custom voice: score and select best paragraphs (same algorithm as Packy)
+    const scoredParas = scoreParagraphsFromSamples(voice.samples)
+    if (scoredParas.length > 0) {
       sections.push(`# EXEMPLAR PARAGRAPHS
 
 These are paragraphs from your own writing. Study them. Your new essay should read as if it could have come from the same mind.\n`)
-      for (const para of exemplars) {
-        sections.push(`${para}\n`)
+      for (const para of scoredParas.slice(0, 40)) {
+        sections.push(`[From "${para.title}"]:\n${para.text}\n`)
       }
     }
 
-    // Include a chunk of raw samples as context
-    const samplePreview = voice.samples.slice(0, 50000)
-    sections.push(`# YOUR WRITING (reference material)\n\n${samplePreview}`)
+    // Embed best full essays (top 5 by word count, like Packy's manifestos)
+    const essays = splitSamplesIntoEssays(voice.samples)
+      .sort((a, b) => b.wordCount - a.wordCount)
+      .slice(0, 5)
+
+    if (essays.length > 0) {
+      sections.push(`# YOUR BEST ESSAYS (read in full)\n`)
+      for (const essay of essays) {
+        sections.push(`=== "${essay.title}" ===\n${essay.content}\n=== END ===\n`)
+      }
+    }
   } else {
     // Default Packy voice: use file-based corpus
     const essays = loadCorpus()
