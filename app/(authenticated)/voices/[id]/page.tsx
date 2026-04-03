@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, PenTool, FileText, Globe, Type, BookOpen } from "lucide-react"
 import Link from "next/link"
-import { getQuality } from "@/lib/actions/voices"
+import { getQuality } from "@/lib/audience/quality"
 
 const QUALITY_COLORS: Record<string, string> = {
   excellent: "bg-green-100 text-green-800 border-green-200",
