@@ -1,7 +1,7 @@
 import { generateText } from "ai"
 import { google } from "@ai-sdk/google"
 import { anthropic } from "@ai-sdk/anthropic"
-import { buildSystemPrompt, buildBasicSystemPrompt, buildUserPrompt, type VoiceParams } from "./prompt"
+import { buildSystemPrompt, buildBasicSystemPrompt, buildUserPrompt, loadManidisVoice, type VoiceParams } from "./prompt"
 import { perturbTokens } from "./perturbations"
 import { addSourcesToEssay } from "./sources"
 import { prisma } from "@/lib/db/prisma"
@@ -87,7 +87,11 @@ export async function generateEssay(
   voiceId?: string,
   addSources = true
 ): Promise<{ raw: string; processed: string }> {
-  const voice = voiceId ? await loadVoice(voiceId) : undefined
+  const voice = voiceId === "manidis"
+    ? loadManidisVoice()
+    : voiceId
+      ? await loadVoice(voiceId)
+      : undefined
 
   let raw: string
 

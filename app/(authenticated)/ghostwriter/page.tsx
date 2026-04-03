@@ -135,6 +135,9 @@ export default function GhostwriterPage() {
                     <SelectItem value="default">
                       Packy McCormick (built-in)
                     </SelectItem>
+                    <SelectItem value="manidis">
+                      Will Manidis (built-in)
+                    </SelectItem>
                     {voices.map((v) => (
                       <SelectItem key={v.id} value={v.id}>
                         {v.name}

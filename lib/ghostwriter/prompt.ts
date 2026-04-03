@@ -1,3 +1,5 @@
+import fs from "fs"
+import path from "path"
 import { loadCorpus, extractBestParagraphs, type Essay } from "./corpus"
 
 const VOICE_FINGERPRINT = `Here is the precise, technical VOICE FINGERPRINT for this author (whose style aligns with Packy McCormick's *Not Boring* newsletter). This profile is designed to map the exact structural, syntactic, and rhetorical markers that distinguish this writing from standard LLM outputs.
@@ -185,6 +187,12 @@ IMPORTANT: The essay MUST be at least 2,500 words. Aim for 3,000-4,000 words. Do
 export type VoiceParams = {
   fingerprint: string
   samples?: string
+}
+
+export function loadManidisVoice(): VoiceParams {
+  const fingerprint = fs.readFileSync(path.join(process.cwd(), "data", "fingerprint-manidis.md"), "utf-8")
+  const samples = fs.readFileSync(path.join(process.cwd(), "data", "corpus-manidis.txt"), "utf-8")
+  return { fingerprint, samples }
 }
 
 type SampleEssay = { title: string; content: string; wordCount: number }
