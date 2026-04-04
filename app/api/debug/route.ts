@@ -1,65 +1,15 @@
 import { NextResponse } from "next/server"
 
-export const dynamic = "force-dynamic"
-
 export async function GET() {
-  const results: Record<string, string> = {}
+  const results: string[] = []
 
-  try {
-    await import("@/auth")
-    results.auth = "ok"
-  } catch (e: any) {
-    results.auth = e.message
-  }
+  try { await import("@/auth"); results.push("auth:ok") } catch (e) { results.push("auth:" + (e instanceof Error ? e.message : String(e))) }
+  try { await import("@/lib/ghostwriter/generate"); results.push("generate:ok") } catch (e) { results.push("generate:" + (e instanceof Error ? e.message : String(e))) }
+  try { await import("@/lib/ghostwriter/pangram"); results.push("pangram:ok") } catch (e) { results.push("pangram:" + (e instanceof Error ? e.message : String(e))) }
+  try { await import("@/lib/ghostwriter/prompt"); results.push("prompt:ok") } catch (e) { results.push("prompt:" + (e instanceof Error ? e.message : String(e))) }
+  try { await import("@/lib/ghostwriter/sources"); results.push("sources:ok") } catch (e) { results.push("sources:" + (e instanceof Error ? e.message : String(e))) }
+  try { await import("@/lib/ghostwriter/corpus"); results.push("corpus:ok") } catch (e) { results.push("corpus:" + (e instanceof Error ? e.message : String(e))) }
+  try { await import("@/lib/ghostwriter/extract"); results.push("extract:ok") } catch (e) { results.push("extract:" + (e instanceof Error ? e.message : String(e))) }
 
-  try {
-    await import("@/lib/ghostwriter/generate")
-    results.generate = "ok"
-  } catch (e: any) {
-    results.generate = e.message
-  }
-
-  try {
-    await import("@/lib/ghostwriter/pangram")
-    results.pangram = "ok"
-  } catch (e: any) {
-    results.pangram = e.message
-  }
-
-  try {
-    await import("@/lib/ghostwriter/prompt")
-    results.prompt = "ok"
-  } catch (e: any) {
-    results.prompt = e.message
-  }
-
-  try {
-    await import("@/lib/ghostwriter/sources")
-    results.sources = "ok"
-  } catch (e: any) {
-    results.sources = e.message
-  }
-
-  try {
-    await import("@/lib/ghostwriter/corpus")
-    results.corpus = "ok"
-  } catch (e: any) {
-    results.corpus = e.message
-  }
-
-  try {
-    await import("@/lib/ghostwriter/extract")
-    results.extract = "ok"
-  } catch (e: any) {
-    results.extract = e.message
-  }
-
-  try {
-    await import("@/lib/ghostwriter/perturbations")
-    results.perturbations = "ok"
-  } catch (e: any) {
-    results.perturbations = e.message
-  }
-
-  return NextResponse.json(results)
+  return NextResponse.json({ results })
 }
