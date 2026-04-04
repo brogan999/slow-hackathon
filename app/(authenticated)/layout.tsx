@@ -1,3 +1,5 @@
+export const maxDuration = 300
+
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
